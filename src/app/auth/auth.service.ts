@@ -14,7 +14,7 @@ import * as firebase from 'firebase';
 import Swal from 'sweetalert2';
 import { User } from './user.model';
 import { AppState } from '../app.reducer';
-import { SetUserAction } from './auth.actions';
+import { SetUserAction, UnsetUserAction } from './auth.actions';
 
 
 @Injectable({
@@ -23,6 +23,8 @@ import { SetUserAction } from './auth.actions';
 export class AuthService {
 
   private userSubscription: Subscription = new Subscription();
+  private usuario: User;
+
 
   constructor( private afAuth: AngularFireAuth,
                 private router: Router,
@@ -37,15 +39,16 @@ initAuthListener() {
       .subscribe( (usuarioObj: any) => {
         const newuser = new User( usuarioObj );
         this.store.dispatch( new SetUserAction( newuser ) );
-    console.log( newuser );
+        this.usuario = newuser;
       });
     } else {
+      this.usuario = null;
       this.userSubscription.unsubscribe();
     }
   });
 }
 
-crearUsuario( nombre:string, email:string, password:string) {
+crearUsuario( nombre: string, email: string, password: string) {
 
     this.store.dispatch( new ActivarLoadingAction() );
 
@@ -98,19 +101,24 @@ login( email: string, password: string  ) {
 logout() {
   this.router.navigate(['/login']);
   this.afAuth.auth.signOut();
+
+  this.store.dispatch( new UnsetUserAction() );
 }
 
 isAuth() {
   return this.afAuth.authState
-  .pipe( 
+  .pipe(
     map( fbUser => {
-      if (fbUser == null){
+      if (fbUser == null) {
         this.router.navigate(['/login']);
       }
       return fbUser != null;
     } ) );
 }
 
+  getUsuario() {
+    return { ... this.usuario };   // usa el spread para romper la referencia y devolver un nuevo objeto
+  }
 
 
 }
